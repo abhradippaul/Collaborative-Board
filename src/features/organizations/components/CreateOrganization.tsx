@@ -1,7 +1,7 @@
 "use client";
 
 import CustomDialog from "@/components/CustomDialog";
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,13 +17,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { useCreateOrganization } from "../api/UseCreateOrganization";
+import { insertOrganizationSchema } from "@/database/schema";
 
-const formSchema = z.object({
-  name: z.string().min(2).max(50),
-  slug: z.string().min(2).max(50),
+const formSchema = insertOrganizationSchema.pick({
+  name: true,
+  slug: true,
 });
 
 function CreateOrganization() {
+  const createOrganization = useCreateOrganization();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -33,7 +36,11 @@ function CreateOrganization() {
   });
 
   const onSubmit = useCallback((values: z.infer<typeof formSchema>) => {
-    console.log(values);
+    createOrganization.mutate(values, {
+      onSuccess: () => {
+        form.reset();
+      },
+    });
   }, []);
 
   return (
@@ -95,7 +102,12 @@ function CreateOrganization() {
               </FormItem>
             )}
           />
-          <Button type="submit">Submit</Button>
+          <Button type="submit" disabled={createOrganization.isPending}>
+            {createOrganization.isPending && (
+              <Loader2 className="size-6 mr-2 animate-spin" />
+            )}
+            Submit
+          </Button>
         </form>
       </Form>
     </CustomDialog>

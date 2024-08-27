@@ -1,6 +1,6 @@
 {
-  "id": "d266a033-f451-49e7-8b95-90a6852b2cf1",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "325d14df-b6c9-402f-8a2c-155998d2a3a0",
+  "prevId": "6011cc12-2a1c-40e0-b8fe-a90b4b629f9c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -10,7 +10,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "text",
           "primaryKey": true,
           "notNull": true
         },
@@ -37,7 +37,13 @@
           "name": "userId",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
