@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic";
 
-const CreateOrganization = dynamic(() => import("../../../../features/organizations/components/CreateOrganization"));
+const CreateOrganization = dynamic(() => import("@/features/organizations/components/CreateOrganization"));
 
 function Sidebar() {
   return (

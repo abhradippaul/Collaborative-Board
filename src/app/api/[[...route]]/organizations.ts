@@ -23,7 +23,7 @@ const app = new Hono()
     async (c) => {
       const { getUser } = getKindeServerSession();
       const user = await getUser();
-      const { name, slug } = c.req.valid("form");
+      const { name, slug, image } = c.req.valid("form");
       if (!user?.id) {
         return c.json(
           {
@@ -47,6 +47,7 @@ const app = new Hono()
         userId: user.id,
         id: v4().toString(),
         slug,
+        image,
       });
 
       if (!isCreated) {

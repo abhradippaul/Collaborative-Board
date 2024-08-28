@@ -6,7 +6,7 @@ import { Loader2, Plus } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useCreateOrganization } from "../api/UseCreateOrganization";
 import { insertOrganizationSchema } from "@/database/schema";
+import UploadImage from "./UploadImage";
 
 const formSchema = insertOrganizationSchema.pick({
   name: true,
@@ -26,6 +27,8 @@ const formSchema = insertOrganizationSchema.pick({
 });
 
 function CreateOrganization() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [image, setImage] = useState("");
   const createOrganization = useCreateOrganization();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -35,13 +38,21 @@ function CreateOrganization() {
     },
   });
 
-  const onSubmit = useCallback((values: z.infer<typeof formSchema>) => {
-    createOrganization.mutate(values, {
-      onSuccess: () => {
-        form.reset();
-      },
-    });
-  }, []);
+  const onSubmit = useCallback(
+    (values: z.infer<typeof formSchema>) => {
+      createOrganization.mutate(
+        { ...values, image },
+        {
+          onSuccess: () => {
+            form.reset();
+            setIsModalOpen(false);
+            setImage("");
+          },
+        }
+      );
+    },
+    [image]
+  );
 
   return (
     <CustomDialog
@@ -50,15 +61,20 @@ function CreateOrganization() {
           <button
             className="bg-white/25 size-full rounded-md flex items-center justify-center opacity-60 hover:opacity-100
          transition"
+            onClick={() => setIsModalOpen(true)}
           >
             <Plus className="text-white" />
           </button>
         </div>
       }
       title="Create Organization"
+      description="Create organization to use board"
+      isOpen={isModalOpen}
+      setIsOpen={setIsModalOpen}
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <UploadImage image={image} setImage={setImage} className="mt-6"/>
           <FormField
             control={form.control}
             name="name"
@@ -69,6 +85,7 @@ function CreateOrganization() {
                   <Input
                     placeholder="Enter organization name"
                     {...field}
+                    required
                     onChange={(e) => {
                       field.onChange(e.target.value);
                       form.setValue(
@@ -92,6 +109,7 @@ function CreateOrganization() {
                 <FormControl>
                   <Input
                     placeholder="Enter slug url"
+                    required
                     {...field}
                     onChange={(e) => {
                       field.onChange(e.target.value.replaceAll(" ", "-"));
@@ -102,7 +120,14 @@ function CreateOrganization() {
               </FormItem>
             )}
           />
-          <Button type="submit" disabled={createOrganization.isPending}>
+          <Button
+            type="submit"
+            disabled={
+              createOrganization.isPending ||
+              !Boolean(form.getValues("name")) ||
+              !Boolean(form.getValues("slug"))
+            }
+          >
             {createOrganization.isPending && (
               <Loader2 className="size-6 mr-2 animate-spin" />
             )}
