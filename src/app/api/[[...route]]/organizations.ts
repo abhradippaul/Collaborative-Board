@@ -4,11 +4,32 @@ import { insertOrganizationSchema, organizations } from "@/database/schema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { db } from "@/database";
 import { v4 } from "uuid";
+import { eq, or } from "drizzle-orm";
 
 const app = new Hono()
-  .get("/", (c) => {
+  .get("/", async (c) => {
+    const { getUser } = getKindeServerSession();
+    const user = await getUser();
+    if (!user?.id) {
+      return c.json(
+        {
+          message: "User is not authenticated",
+        },
+        401
+      );
+    }
+    const data = await db
+      .select({
+        slug: organizations.slug,
+        name: organizations.name,
+        image: organizations.image,
+      })
+      .from(organizations)
+      .where(eq(organizations.userId, user.id));
+
     return c.json({
-      message: "Welcome to the Hono API",
+      message: "Organization found successfully",
+      data,
     });
   })
   .post(
@@ -39,6 +60,22 @@ const app = new Hono()
             message: "Name and slug are required",
           },
           400
+        );
+      }
+
+      const isAlreadyExist = await db
+        .select({
+          id: organizations.id,
+        })
+        .from(organizations)
+        .where(or(eq(organizations.slug, slug)));
+
+      if (isAlreadyExist.length) {
+        return c.json(
+          {
+            message: "Organization already exists",
+          },
+          409
         );
       }
 

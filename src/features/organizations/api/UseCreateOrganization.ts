@@ -16,8 +16,9 @@ export function useCreateOrganization() {
       const response = await client.api.v1.organizations.$post({
         form: formData,
       });
-      if(!response.ok) {
-        throw new Error(response.statusText);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
       }
       return await response.json();
     },
@@ -25,8 +26,8 @@ export function useCreateOrganization() {
       queryClient.invalidateQueries({ queryKey: ["organizations"] });
       toast.success("Organization created successfully");
     },
-    onError: () => {
-      toast.error("Unable to create organization");
+    onError: (err) => {
+      toast.error(err.message);
     },
   });
   return mutation;

@@ -1,8 +1,11 @@
 "use client";
 
-import CustomDialog from "@/components/CustomDialog";
-import { Loader2, Plus } from "lucide-react";
+import dynamic from "next/dynamic";
+const CustomTooltip = dynamic(() => import("@/components/CustomTooltip"));
+const UploadImage = dynamic(() => import("./UploadImage"));
+const CustomDialog = dynamic(() => import("@/components/CustomDialog"));
 
+import { Loader2, Plus } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -19,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useCreateOrganization } from "../api/UseCreateOrganization";
 import { insertOrganizationSchema } from "@/database/schema";
-import UploadImage from "./UploadImage";
+import { useCreateOrganizationStore } from "@/zustand/useCreateOrganizationStore/store";
 
 const formSchema = insertOrganizationSchema.pick({
   name: true,
@@ -27,7 +30,19 @@ const formSchema = insertOrganizationSchema.pick({
 });
 
 function CreateOrganization() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const isModalOpen = useCreateOrganizationStore(
+    ({ isCreateOrganizationOpen }) => isCreateOrganizationOpen
+  );
+  const closeModal = useCreateOrganizationStore(
+    ({ closeCreateOrganization }) => closeCreateOrganization
+  );
+  const openModal = useCreateOrganizationStore(
+    ({ openCreateOrganization }) => openCreateOrganization
+  );
+  const toggleModal = useCreateOrganizationStore(
+    ({ toggleCreateOrganization }) => toggleCreateOrganization
+  );
+
   const [image, setImage] = useState("");
   const createOrganization = useCreateOrganization();
   const form = useForm<z.infer<typeof formSchema>>({
@@ -45,7 +60,7 @@ function CreateOrganization() {
         {
           onSuccess: () => {
             form.reset();
-            setIsModalOpen(false);
+            closeModal();
             setImage("");
           },
         }
@@ -57,24 +72,30 @@ function CreateOrganization() {
   return (
     <CustomDialog
       trigger={
-        <div className="size-10">
-          <button
-            className="bg-white/25 size-full rounded-md flex items-center justify-center opacity-60 hover:opacity-100
-         transition"
-            onClick={() => setIsModalOpen(true)}
-          >
-            <Plus className="text-white" />
-          </button>
-        </div>
+        <CustomTooltip
+          sideOffset={10}
+          trigger={
+            <div className="size-10">
+              <button
+                className="bg-white/25 size-full rounded-md flex items-center justify-center opacity-60 hover:opacity-100 transition hover:rounded-lg"
+                onClick={() => openModal()}
+              >
+                <Plus className="text-white" />
+              </button>
+            </div>
+          }
+          content="Create Organization"
+          side="right"
+        />
       }
       title="Create Organization"
       description="Create organization to use board"
       isOpen={isModalOpen}
-      setIsOpen={setIsModalOpen}
+      setIsOpen={toggleModal}
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <UploadImage image={image} setImage={setImage} className="mt-6"/>
+          <UploadImage image={image} setImage={setImage} className="mt-6" />
           <FormField
             control={form.control}
             name="name"
@@ -90,7 +111,7 @@ function CreateOrganization() {
                       field.onChange(e.target.value);
                       form.setValue(
                         "slug",
-                        e.target.value.replaceAll(" ", "-")
+                        e.target.value.replaceAll(" ", "-").toLowerCase()
                       );
                     }}
                   />
@@ -122,6 +143,7 @@ function CreateOrganization() {
           />
           <Button
             type="submit"
+            variant="custom"
             disabled={
               createOrganization.isPending ||
               !Boolean(form.getValues("name")) ||

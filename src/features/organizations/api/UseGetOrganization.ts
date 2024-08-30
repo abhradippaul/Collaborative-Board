@@ -1,13 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { client } from "@/lib/hono";
 
-export async function useGetOrganization() {
+export function useGetOrganization() {
   const query = useQuery({
     queryKey: ["organizations"],
     queryFn: async () => {
       const response = await client.api.v1.organizations.$get();
-      const data = await response.json();
-      return data;
+      if (!response.ok) {
+        throw new Error(response.statusText);
+      }
+      return await response.json();
     },
   });
   return query;
