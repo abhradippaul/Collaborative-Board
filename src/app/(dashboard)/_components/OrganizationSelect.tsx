@@ -9,17 +9,30 @@ import {
 import { useGetOrganization } from "@/features/organizations/api/UseGetOrganization";
 import { useCreateOrganizationStore } from "@/zustand/useCreateOrganizationStore/store";
 import { Plus } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { memo, useState } from "react";
 
 function OrganizationSelect() {
   const { data: organizations, isLoading } = useGetOrganization();
+  const [value, setValue] = useState("");
   const openModal = useCreateOrganizationStore(
     ({ openCreateOrganization }) => openCreateOrganization
   );
+  const organization = useSearchParams().get("organization");
+  const navigate = useRouter();
+  
   if (!organizations || !organizations.data.length) return null;
   return (
-    <Select disabled={isLoading}>
+    <Select
+      disabled={isLoading}
+      value={organization || value}
+      onValueChange={(e) => {
+        setValue(e);
+        navigate.push(`/?organization=${e}`);
+      }}
+    >
       <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder="Organizations" />
+        <SelectValue placeholder="Select Organization" />
       </SelectTrigger>
       <SelectContent className="flex items-center justify-center">
         {organizations?.data.map(({ name, slug, image }) => (
@@ -48,4 +61,4 @@ function OrganizationSelect() {
   );
 }
 
-export default OrganizationSelect;
+export default memo(OrganizationSelect);

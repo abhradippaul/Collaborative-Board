@@ -3,11 +3,12 @@
 import CustomTooltip from "@/components/CustomTooltip";
 import { useGetOrganization } from "@/features/organizations/api/UseGetOrganization";
 import { cn } from "@/lib/utils";
-import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 
 function List() {
   const { data: organizations } = useGetOrganization();
-  const pathname = usePathname();
+  const param = useSearchParams().get("organization");
 
   if (!organizations || !organizations.data) return null;
 
@@ -19,14 +20,16 @@ function List() {
             sideOffset={10}
             content={name}
             trigger={
-              <img
-                src={image || "/logo.svg"}
-                alt={name}
-                className={cn(
-                  "size-10 rounded-full cursor-pointer opacity-75 hover:opacity-100 transition",
-                  pathname.includes(slug) && "opacity-100"
-                )}
-              />
+              <Link href={`/?organization=${slug}`}>
+                <img
+                  src={image || "/logo.svg"}
+                  alt={name}
+                  className={cn(
+                    "size-10 rounded-full cursor-pointer opacity-75 hover:opacity-100 transition",
+                    param === slug && "opacity-100"
+                  )}
+                />
+              </Link>
             }
             side="right"
           />

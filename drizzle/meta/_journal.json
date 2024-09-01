@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1724343237121,
-      "tag": "0000_ordinary_wiccan",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1724677223304,
-      "tag": "0001_worthless_post",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1724677427876,
-      "tag": "0002_curved_yellow_claw",
+      "when": 1725172977184,
+      "tag": "0000_hesitant_northstar",
       "breakpoints": true
     }
   ]
