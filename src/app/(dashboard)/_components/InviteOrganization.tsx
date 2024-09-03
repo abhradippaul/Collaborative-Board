@@ -19,34 +19,41 @@ import {
 import { Input } from "@/components/ui/input";
 import { insertOrganizationMemberSchema } from "@/database/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Share } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { Loader2, Share } from "lucide-react";
+import { useSendInvitation } from "@/features/members/api/useSendInvitation";
 
 const formSchema = insertOrganizationMemberSchema.pick({
   invitationEmail: true,
-  organizationId: true,
+  organizationSlug: true,
   role: true,
 });
 
-function InviteOrganization() {
-  const organizationId = useSearchParams().get("organization");
+interface Props {
+  organizationSlug?: string | null;
+}
+
+function InviteOrganization({ organizationSlug }: Props) {
+  const { mutate, isPending } = useSendInvitation();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       invitationEmail: "",
-      organizationId: "",
+      organizationSlug: "",
       role: "",
     },
   });
 
-  const onSubmit = useCallback((values: z.infer<typeof formSchema>) => {
-    if (organizationId) {
-      console.log(values);
-    }
-  }, [organizationId]);
+  const onSubmit = useCallback(
+    (values: z.infer<typeof formSchema>) => {
+      if (organizationSlug) {
+        mutate({ ...values, organizationSlug });
+      }
+    },
+    [organizationSlug]
+  );
 
   return (
     <CustomDialog
@@ -111,12 +118,12 @@ function InviteOrganization() {
           <Button
             type="submit"
             variant="custom"
-            disabled={!Boolean(organizationId)}
+            disabled={!Boolean(organizationSlug) || isPending}
           >
-            {/* <Loader2 className="size-6 mr-2 animate-spin" /> */}
+            {isPending && <Loader2 className="size-6 mr-2 animate-spin" />}
             Submit
           </Button>
-          {!Boolean(organizationId) && (
+          {!Boolean(organizationSlug) && (
             <p className="text-zinc-700 text-sm text-center">
               Please select an organization first
             </p>
@@ -127,4 +134,4 @@ function InviteOrganization() {
   );
 }
 
-export default InviteOrganization;
+export default memo(InviteOrganization);

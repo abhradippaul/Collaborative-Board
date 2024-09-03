@@ -1,5 +1,5 @@
 {
-  "id": "5d4d62cd-b633-468b-8358-792b5c5c9cec",
+  "id": "1c372c7d-9aa5-4890-8914-526c4a67adf7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -14,8 +14,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "organizationId": {
-          "name": "organizationId",
+        "organizationSlug": {
+          "name": "organizationSlug",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -50,15 +50,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "organization_member_organizationId_organizations_id_fk": {
-          "name": "organization_member_organizationId_organizations_id_fk",
+        "organization_member_organizationSlug_organizations_slug_fk": {
+          "name": "organization_member_organizationSlug_organizations_slug_fk",
           "tableFrom": "organization_member",
           "tableTo": "organizations",
           "columnsFrom": [
-            "organizationId"
+            "organizationSlug"
           ],
           "columnsTo": [
-            "id"
+            "slug"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -139,7 +139,15 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {
+        "organizations_slug_unique": {
+          "name": "organizations_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      }
     },
     "public.users": {
       "name": "users",

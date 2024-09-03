@@ -1,19 +1,20 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { cn } from "@/lib/utils";
 import { Poppins } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { useMedia } from "react-use";
-import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Share, Star } from "lucide-react";
+import { LayoutDashboard, Star } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
-import InviteOrganization from "./InviteOrganization";
 
 const OrganizationSelect = dynamic(() => import("./OrganizationSelect"));
+const InviteOrganization = dynamic(() => import("./InviteOrganization"));
+const OrganizationRequest = dynamic(() => import("./OrganizationRequest"));
 
 const font = Poppins({
   subsets: ["latin"],
@@ -25,6 +26,7 @@ function OrgSidebar() {
   const [isMounted, setIsMounted] = useState(false);
   const searchParams = useSearchParams();
   const favorites = searchParams.get("favorites");
+  const organizationSlug = searchParams.get("organization");
 
   useEffect(() => {
     setIsMounted(true);
@@ -68,15 +70,10 @@ function OrgSidebar() {
             </Link>
           </Button>
           <Separator />
-          <InviteOrganization />
-          {/* <Button
-            variant="ghost"
-            size="lg"
-            className="font-normal justify-around px-2 w-full"
-          >
-            <Share className="size-4 mr-2" />
-            Invite
-          </Button> */}
+          {organizationSlug && (
+            <InviteOrganization organizationSlug={organizationSlug} />
+          )}
+          <OrganizationRequest />
         </div>
       </div>
     )

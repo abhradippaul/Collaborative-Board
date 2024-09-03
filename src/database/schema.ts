@@ -28,7 +28,7 @@ export const organizations = pgTable("organizations", {
     .references(() => users.id, {
       onDelete: "cascade",
     }),
-  slug: text("slug").notNull(),
+  slug: text("slug").notNull().unique(),
 });
 
 export const organizationRelations = relations(
@@ -46,9 +46,9 @@ export const insertOrganizationSchema = createInsertSchema(organizations);
 
 export const organizationMembers = pgTable("organization_member", {
   id: text("id").primaryKey(),
-  organizationId: text("organizationId")
+  organizationSlug: text("organizationSlug")
     .notNull()
-    .references(() => organizations.id, {
+    .references(() => organizations.slug, {
       onDelete: "cascade",
     }),
   invitationEmail: text("invitationEmail")
@@ -65,8 +65,8 @@ export const organizationMembersRelations = relations(
   organizationMembers,
   ({ one }) => ({
     organizations: one(organizations, {
-      fields: [organizationMembers.organizationId],
-      references: [organizations.id],
+      fields: [organizationMembers.organizationSlug],
+      references: [organizations.slug],
     }),
     users: one(users, {
       fields: [organizationMembers.invitationEmail],

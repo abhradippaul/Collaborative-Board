@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS "organization_member" (
 	"id" text PRIMARY KEY NOT NULL,
-	"organizationId" text NOT NULL,
+	"organizationSlug" text NOT NULL,
 	"invitationEmail" text NOT NULL,
 	"role" text DEFAULT 'member' NOT NULL,
 	"isAccepted" boolean DEFAULT false NOT NULL,
@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS "organizations" (
 	"image" text,
 	"createdAt" timestamp DEFAULT now() NOT NULL,
 	"userId" text NOT NULL,
-	"slug" text NOT NULL
+	"slug" text NOT NULL,
+	CONSTRAINT "organizations_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "users" (
@@ -28,7 +29,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 );
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "organization_member" ADD CONSTRAINT "organization_member_organizationId_organizations_id_fk" FOREIGN KEY ("organizationId") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;
+ ALTER TABLE "organization_member" ADD CONSTRAINT "organization_member_organizationSlug_organizations_slug_fk" FOREIGN KEY ("organizationSlug") REFERENCES "public"."organizations"("slug") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
