@@ -1,6 +1,6 @@
 {
-  "id": "1239ae67-27c1-4df7-93fd-25a2afbf20d8",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "859fea26-cc40-476a-ade1-0ab90599e776",
+  "prevId": "1239ae67-27c1-4df7-93fd-25a2afbf20d8",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -14,8 +14,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "organizationSlug": {
-          "name": "organizationSlug",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -36,15 +36,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "organization_member_requests_organizationSlug_organizations_slug_fk": {
-          "name": "organization_member_requests_organizationSlug_organizations_slug_fk",
+        "organization_member_requests_organizationId_organizations_id_fk": {
+          "name": "organization_member_requests_organizationId_organizations_id_fk",
           "tableFrom": "organization_member_requests",
           "tableTo": "organizations",
           "columnsFrom": [
-            "organizationSlug"
+            "organizationId"
           ],
           "columnsTo": [
-            "slug"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -76,8 +76,14 @@
           "primaryKey": true,
           "notNull": true
         },
-        "organizationSlug": {
-          "name": "organizationSlug",
+        "organizationId": {
+          "name": "organizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -99,15 +105,28 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "organization_member_organizationSlug_organizations_slug_fk": {
-          "name": "organization_member_organizationSlug_organizations_slug_fk",
+        "organization_member_organizationId_organizations_id_fk": {
+          "name": "organization_member_organizationId_organizations_id_fk",
           "tableFrom": "organization_member",
           "tableTo": "organizations",
           "columnsFrom": [
-            "organizationSlug"
+            "organizationId"
           ],
           "columnsTo": [
-            "slug"
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "organization_member_userId_users_id_fk": {
+          "name": "organization_member_userId_users_id_fk",
+          "tableFrom": "organization_member",
+          "tableTo": "users",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"

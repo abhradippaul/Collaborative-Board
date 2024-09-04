@@ -1,9 +1,11 @@
-import React from 'react'
+import EmptyOrg from "./_components/EmptyOrg";
 
-function page() {
+function DashboardPage() {
   return (
-    <div>Dashboard Page</div>
-  )
+    <div className="flex-1 min-h-[9dvh] p-6">
+      <EmptyOrg />
+    </div>
+  );
 }
 
-export default page
+export default DashboardPage;

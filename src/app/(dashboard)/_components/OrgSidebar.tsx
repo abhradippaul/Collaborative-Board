@@ -13,7 +13,7 @@ import { useSearchParams } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 
 const OrganizationSelect = dynamic(() => import("./OrganizationSelect"));
-const InviteOrganization = dynamic(() => import("./InviteOrganization"));
+const InviteOrganization = dynamic(() => import("../../../features/members/components/InviteOrganization"));
 const OrganizationRequest = dynamic(() => import("./OrganizationRequest"));
 
 const font = Poppins({

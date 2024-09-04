@@ -1,6 +1,6 @@
 import { db } from "@/database";
 import {
-  insertOrganizationMemberSchema,
+  organizationMemberRequests,
   organizationMembers,
   organizations,
   users,
@@ -17,10 +17,10 @@ const app = new Hono()
     "/send",
     zValidator(
       "form",
-      insertOrganizationMemberSchema.pick({
-        organizationSlug: true,
-        invitationEmail: true,
-        role: true,
+      z.object({
+        receiver: z.string().email(),
+        organizationSlug: z.string(),
+        role: z.string(),
       })
     ),
     async (c) => {
@@ -29,7 +29,7 @@ const app = new Hono()
         const user = await getUser();
         const {
           organizationSlug,
-          invitationEmail,
+          receiver,
           role = "member",
         } = c.req.valid("form");
 
@@ -42,16 +42,16 @@ const app = new Hono()
           );
         }
 
-        if (!organizationSlug || !invitationEmail) {
+        if (!organizationSlug || !receiver) {
           return c.json(
             {
-              message: "Organization ID and invitation email are required",
+              message: "Organization ID and receiver email are required",
             },
             400
           );
         }
 
-        if (user.email === invitationEmail) {
+        if (user.email === receiver) {
           return c.json(
             {
               message: "Invitation sender cannot invite themselves",
@@ -65,7 +65,7 @@ const app = new Hono()
             id: users.id,
           })
           .from(users)
-          .where(eq(users.id, user.id));
+          .where(and(eq(users.id, user.id), eq(users.email, user.email)));
 
         if (!isInvitationSenderExist.length) {
           return c.json(
@@ -93,7 +93,7 @@ const app = new Hono()
         const isMemberExist = await db
           .select({ id: users.id })
           .from(users)
-          .where(eq(users.email, invitationEmail));
+          .where(eq(users.email, receiver));
 
         if (!isMemberExist.length) {
           return c.json(
@@ -109,27 +109,50 @@ const app = new Hono()
           .from(organizationMembers)
           .where(
             and(
-              eq(organizationMembers.organizationSlug, organizationSlug),
-              eq(organizationMembers.invitationEmail, invitationEmail)
+              eq(organizationMembers.userId, isMemberExist[0].id),
+              eq(organizationMembers.organizationId, isOrganizationExist[0].id)
             )
           );
 
         if (isAlreadyMember.length) {
           return c.json(
             {
-              message:
-                "User is already a member of the organization or already send invitation",
+              message: "User is already a member of the organization",
             },
             409
           );
         }
 
-        const isInvitationSend = await db.insert(organizationMembers).values({
-          id: v4().toString(),
-          organizationSlug,
-          invitationEmail,
-          role,
-        });
+        const isAlreadySendRequest = await db
+          .select({ id: organizationMemberRequests.id })
+          .from(organizationMemberRequests)
+          .where(
+            and(
+              eq(
+                organizationMemberRequests.organizationId,
+                isOrganizationExist[0].id
+              ),
+              eq(organizationMemberRequests.receiver, isMemberExist[0].id)
+            )
+          );
+
+        if (isAlreadySendRequest.length) {
+          return c.json(
+            {
+              message: "User already recevied invitation",
+            },
+            409
+          );
+        }
+
+        const isInvitationSend = await db
+          .insert(organizationMemberRequests)
+          .values({
+            id: v4().toString(),
+            role,
+            organizationId: isOrganizationExist[0].id,
+            receiver: isMemberExist[0].id,
+          });
 
         if (!isInvitationSend) {
           return c.json(
@@ -169,27 +192,28 @@ const app = new Hono()
 
     const pendingRequests = await db
       .select({
-        id: organizationMembers.id,
-        slug: organizationMembers.organizationSlug,
+        id: organizationMemberRequests.id,
+        slug: organizations.slug,
         image: organizations.image,
         name: organizations.name,
       })
       .from(users)
-      .innerJoin(
-        organizationMembers,
-        eq(organizationMembers.invitationEmail, users.email)
+      .leftJoin(
+        organizationMemberRequests,
+        eq(organizationMemberRequests.receiver, users.id)
       )
-      .innerJoin(
+      .leftJoin(
         organizations,
-        eq(organizations.slug, organizationMembers.organizationSlug)
+        eq(organizations.id, organizationMemberRequests.organizationId)
       )
-      .where(
-        and(
-          eq(users.id, user.id),
-          eq(users.email, user.email),
-          eq(organizationMembers.isAccepted, false)
-        )
-      );
+      .where(and(eq(users.id, user.id), eq(users.email, user.email)));
+
+    if (!pendingRequests[0].id || !pendingRequests[0].slug) {
+      return c.json({
+        message: "No pending requests found",
+        pendingRequests: [],
+      });
+    }
 
     return c.json({
       message: "Pending requests received successfully",
@@ -228,17 +252,29 @@ const app = new Hono()
       }
 
       const isRequestExist = await db
-        .select({ id: organizationMembers.id })
-        .from(organizationMembers)
-        .where(
-          and(
-            eq(organizationMembers.invitationEmail, user.email),
-            eq(organizationMembers.organizationSlug, slug),
-            eq(organizationMembers.isAccepted, false)
-          )
-        );
+        .select({
+          organizationMemberRequestId: organizationMemberRequests.id,
+          userId: users.id,
+          organizationId: organizations.id,
+          role: organizationMemberRequests.role,
+        })
+        .from(users)
+        .leftJoin(
+          organizationMemberRequests,
+          eq(organizationMemberRequests.receiver, users.id)
+        )
+        .leftJoin(
+          organizations,
+          eq(organizations.id, organizationMemberRequests.organizationId)
+        )
+        .where(and(eq(users.id, user.id), eq(users.email, user.email)));
 
-      if (!isRequestExist.length) {
+      if (
+        !isRequestExist[0].userId ||
+        !isRequestExist[0].organizationId ||
+        !isRequestExist[0].role ||
+        !isRequestExist[0].organizationMemberRequestId
+      ) {
         return c.json(
           {
             message: "Request does not exist",
@@ -247,12 +283,12 @@ const app = new Hono()
         );
       }
 
-      const isRequestAccepted = await db
-        .update(organizationMembers)
-        .set({
-          isAccepted: true,
-        })
-        .where(eq(organizationMembers.id, isRequestExist[0].id));
+      const isRequestAccepted = await db.insert(organizationMembers).values({
+        id: v4().toString(),
+        role: isRequestExist[0].role,
+        userId: isRequestExist[0].userId,
+        organizationId: isRequestExist[0].organizationId,
+      });
 
       if (!isRequestAccepted) {
         return c.json(
@@ -263,8 +299,104 @@ const app = new Hono()
         );
       }
 
+      const isRequestDeleted = await db
+        .delete(organizationMemberRequests)
+        .where(
+          eq(
+            organizationMemberRequests.id,
+            isRequestExist[0].organizationMemberRequestId
+          )
+        );
+
+      if (!isRequestDeleted) {
+        return c.json(
+          {
+            message: "Failed to delete request",
+          },
+          500
+        );
+      }
+
       return c.json({
         message: "Accept request successfully",
+      });
+    }
+  )
+  .delete(
+    "/reject",
+    zValidator(
+      "form",
+      z.object({
+        slug: z.string().optional(),
+      })
+    ),
+    async (c) => {
+      const { getUser } = getKindeServerSession();
+      const user = await getUser();
+      const { slug } = c.req.valid("form");
+
+      if (!user?.id || !user.email) {
+        return c.json(
+          {
+            message: "User is not authenticated",
+          },
+          401
+        );
+      }
+
+      if (!slug) {
+        return c.json(
+          {
+            message: "Organization slug is required",
+          },
+          400
+        );
+      }
+
+      const isRequestExist = await db
+        .select({
+          organizationMemberRequestId: organizationMemberRequests.id,
+        })
+        .from(users)
+        .leftJoin(
+          organizationMemberRequests,
+          eq(organizationMemberRequests.receiver, users.id)
+        )
+        .leftJoin(
+          organizations,
+          eq(organizations.id, organizationMemberRequests.organizationId)
+        )
+        .where(and(eq(users.id, user.id), eq(users.email, user.email)));
+
+      if (!isRequestExist[0].organizationMemberRequestId) {
+        return c.json(
+          {
+            message: "Request does not exist",
+          },
+          404
+        );
+      }
+
+      const isRequestRejected = await db
+        .delete(organizationMemberRequests)
+        .where(
+          eq(
+            organizationMemberRequests.id,
+            isRequestExist[0].organizationMemberRequestId
+          )
+        );
+
+      if (!isRequestRejected) {
+        return c.json(
+          {
+            message: "Failed to reject request",
+          },
+          500
+        );
+      }
+
+      return c.json({
+        message: "Request rejected successfully",
       });
     }
   );

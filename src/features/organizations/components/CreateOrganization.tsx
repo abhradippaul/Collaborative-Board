@@ -21,15 +21,21 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useCreateOrganization } from "../api/UseCreateOrganization";
-import { insertOrganizationSchema } from "@/database/schema";
+import { insertOrganizationsSchema } from "@/database/schema";
 import { useCreateOrganizationStore } from "@/zustand/useCreateOrganizationStore/store";
+import { cn } from "@/lib/utils";
 
-const formSchema = insertOrganizationSchema.pick({
+const formSchema = insertOrganizationsSchema.pick({
   name: true,
   slug: true,
 });
 
-function CreateOrganization() {
+interface Props {
+  classNameForButton?: string;
+  buttonText?: string;
+}
+
+function CreateOrganization({ classNameForButton, buttonText }: Props) {
   const isModalOpen = useCreateOrganizationStore(
     ({ isCreateOrganizationOpen }) => isCreateOrganizationOpen
   );
@@ -72,21 +78,28 @@ function CreateOrganization() {
   return (
     <CustomDialog
       trigger={
-        <CustomTooltip
-          sideOffset={10}
-          trigger={
-            <div className="size-10">
-              <button
-                className="bg-white/25 size-full rounded-md flex items-center justify-center opacity-60 hover:opacity-100 transition hover:rounded-lg"
-                onClick={() => openModal()}
-              >
-                <Plus className="text-white" />
-              </button>
-            </div>
-          }
-          content="Create Organization"
-          side="right"
-        />
+        buttonText ? (
+          <Button size="lg">{buttonText}</Button>
+        ) : (
+          <CustomTooltip
+            sideOffset={10}
+            trigger={
+              <div className="size-10">
+                <button
+                  className={cn(
+                    "bg-white/25 size-full rounded-md flex items-center justify-center opacity-60 hover:opacity-100 transition hover:rounded-lg",
+                    classNameForButton
+                  )}
+                  onClick={() => openModal()}
+                >
+                  <Plus className="text-white" />
+                </button>
+              </div>
+            }
+            content="Create Organization"
+            side="right"
+          />
+        )
       }
       title="Create Organization"
       description="Create organization to use board"

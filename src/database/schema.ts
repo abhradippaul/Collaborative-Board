@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 export const users = pgTable("users", {
@@ -11,8 +11,9 @@ export const users = pgTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelation = relations(users, ({ many }) => ({
   organizations: many(organizations),
+  organizationMemberRequests: many(organizationMemberRequests),
   organizationMembers: many(organizationMembers),
 }));
 
@@ -23,57 +24,81 @@ export const organizations = pgTable("organizations", {
   name: text("name").notNull(),
   image: text("image"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  slug: text("slug").notNull().unique(),
+});
+
+export const organizationsRelation = relations(organizations, ({ many }) => ({
+  organizationMembers: many(organizationMembers),
+  organizationMemberRequests: many(organizationMemberRequests),
+}));
+
+export const insertOrganizationsSchema = createInsertSchema(organizations);
+
+export const organizationMembers = pgTable("organization_member", {
+  id: text("id").primaryKey(),
+  organizationId: text("organizationId")
+    .notNull()
+    .references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
   userId: text("userId")
     .notNull()
     .references(() => users.id, {
       onDelete: "cascade",
     }),
-  slug: text("slug").notNull().unique(),
-});
-
-export const organizationRelations = relations(
-  organizations,
-  ({ one, many }) => ({
-    users: one(users, {
-      fields: [organizations.userId],
-      references: [users.id],
-    }),
-    organizationMembers: many(organizationMembers),
-  })
-);
-
-export const insertOrganizationSchema = createInsertSchema(organizations);
-
-export const organizationMembers = pgTable("organization_member", {
-  id: text("id").primaryKey(),
-  organizationSlug: text("organizationSlug")
-    .notNull()
-    .references(() => organizations.slug, {
-      onDelete: "cascade",
-    }),
-  invitationEmail: text("invitationEmail")
-    .notNull()
-    .references(() => users.email, {
-      onDelete: "cascade",
-    }),
   role: text("role").notNull().default("member"),
-  isAccepted: boolean("isAccepted").notNull().default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const organizationMembersRelations = relations(
+export const organizationMembersRelation = relations(
   organizationMembers,
   ({ one }) => ({
     organizations: one(organizations, {
-      fields: [organizationMembers.organizationSlug],
-      references: [organizations.slug],
+      fields: [organizationMembers.organizationId],
+      references: [organizations.id],
     }),
     users: one(users, {
-      fields: [organizationMembers.invitationEmail],
-      references: [users.email],
+      fields: [organizationMembers.userId],
+      references: [users.id],
     }),
   })
 );
 
-export const insertOrganizationMemberSchema =
+export const insertOrganizationMembersSchema =
   createInsertSchema(organizationMembers);
+
+export const organizationMemberRequests = pgTable(
+  "organization_member_requests",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organizationId")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "cascade",
+      }),
+    receiver: text("receiver")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "cascade",
+      }),
+    role: text("role").notNull().default("member"),
+  }
+);
+
+export const organizationMemberRequestsRelation = relations(
+  organizationMemberRequests,
+  ({ one }) => ({
+    organizations: one(organizations, {
+      fields: [organizationMemberRequests.organizationId],
+      references: [organizations.id],
+    }),
+    users: one(users, {
+      fields: [organizationMemberRequests.receiver],
+      references: [users.id],
+    }),
+  })
+);
+
+export const insertOrganizationMemberRequestsSchema = createInsertSchema(
+  organizationMemberRequests
+);

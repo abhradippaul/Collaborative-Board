@@ -17,18 +17,17 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { insertOrganizationMemberSchema } from "@/database/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { memo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Loader2, Share } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useSendInvitation } from "@/features/members/api/useSendInvitation";
 
-const formSchema = insertOrganizationMemberSchema.pick({
-  invitationEmail: true,
-  organizationSlug: true,
-  role: true,
+const formSchema = z.object({
+  receiver: z.string().email(),
+  organizationSlug: z.string(),
+  role: z.string(),
 });
 
 interface Props {
@@ -40,7 +39,7 @@ function InviteOrganization({ organizationSlug }: Props) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      invitationEmail: "",
+      receiver: "",
       organizationSlug: "",
       role: "",
     },
@@ -49,7 +48,14 @@ function InviteOrganization({ organizationSlug }: Props) {
   const onSubmit = useCallback(
     (values: z.infer<typeof formSchema>) => {
       if (organizationSlug) {
-        mutate({ ...values, organizationSlug });
+        mutate(
+          { ...values, organizationSlug },
+          {
+            onSuccess: () => {
+              form.reset();
+            },
+          }
+        );
       }
     },
     [organizationSlug]
@@ -63,9 +69,9 @@ function InviteOrganization({ organizationSlug }: Props) {
         <Button
           variant="ghost"
           size="lg"
-          className="font-normal justify-around px-2 w-full"
+          className="font-normal justify-between px-4 w-full"
         >
-          <Share className="size-4 mr-2" />
+          <Plus className="size-4 mr-2" />
           Invite
         </Button>
       }
@@ -74,7 +80,7 @@ function InviteOrganization({ organizationSlug }: Props) {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <FormField
             control={form.control}
-            name="invitationEmail"
+            name="receiver"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Email</FormLabel>

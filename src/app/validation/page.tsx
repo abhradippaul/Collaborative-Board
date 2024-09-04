@@ -31,7 +31,6 @@ function ValidationPage() {
               console.error(err);
             },
           });
-          console.log("Running use effect");
         }}
       >
         {isPending && <Loader2 className="size-8 animate-spin mr-2" />}

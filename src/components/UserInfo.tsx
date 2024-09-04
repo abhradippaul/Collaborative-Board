@@ -9,7 +9,6 @@ interface Props {
 }
 
 function UserInfo({ name, avatar }: Props) {
-  console.log(avatar);
   return (
     <div className="flex gap-x-4 items-center justify-center">
       <CustomTooltip

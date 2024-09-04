@@ -1,16 +1,21 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { insertOrganizationSchema, organizations } from "@/database/schema";
+import {
+  insertOrganizationsSchema,
+  organizationMembers,
+  organizations,
+  users,
+} from "@/database/schema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { db } from "@/database";
 import { v4 } from "uuid";
-import { eq, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 const app = new Hono()
   .get("/", async (c) => {
     const { getUser } = getKindeServerSession();
     const user = await getUser();
-    if (!user?.id) {
+    if (!user?.id || !user.email) {
       return c.json(
         {
           message: "User is not authenticated",
@@ -18,14 +23,20 @@ const app = new Hono()
         401
       );
     }
+
     const data = await db
       .select({
         slug: organizations.slug,
         name: organizations.name,
         image: organizations.image,
       })
-      .from(organizations)
-      .where(eq(organizations.userId, user.id));
+      .from(users)
+      .innerJoin(organizationMembers, eq(organizationMembers.userId, user.id))
+      .innerJoin(
+        organizations,
+        eq(organizations.id, organizationMembers.organizationId)
+      )
+      .where(and(eq(users.email, user.email), eq(users.id, user.id)));
 
     return c.json({
       message: "Organization found successfully",
@@ -36,16 +47,17 @@ const app = new Hono()
     "/",
     zValidator(
       "form",
-      insertOrganizationSchema.omit({
+      insertOrganizationsSchema.omit({
         id: true,
-        userId: true,
+        createdAt: true,
       })
     ),
     async (c) => {
       const { getUser } = getKindeServerSession();
       const user = await getUser();
       const { name, slug, image } = c.req.valid("form");
-      if (!user?.id) {
+
+      if (!user?.id || !user.email) {
         return c.json(
           {
             message: "User is not authenticated",
@@ -63,14 +75,34 @@ const app = new Hono()
         );
       }
 
-      const isAlreadyExist = await db
+      const isUserExist = await db
+        .select({
+          id: users.id,
+        })
+        .from(users)
+        .where(and(eq(users.email, user.email), eq(users.id, user.id)));
+
+      if (!isUserExist.length) {
+        return c.json(
+          {
+            message: "User does not exist",
+          },
+          404
+        );
+      }
+
+      const isOrgAlreadyExist = await db
         .select({
           id: organizations.id,
         })
-        .from(organizations)
-        .where(or(eq(organizations.slug, slug)));
+        .from(organizationMembers)
+        .innerJoin(
+          organizations,
+          eq(organizations.id, organizationMembers.organizationId)
+        )
+        .where(eq(organizations.slug, slug));
 
-      if (isAlreadyExist.length) {
+      if (isOrgAlreadyExist.length) {
         return c.json(
           {
             message: "Organization already exists",
@@ -79,18 +111,36 @@ const app = new Hono()
         );
       }
 
-      const isCreated = await db.insert(organizations).values({
-        name,
-        userId: user.id,
-        id: v4().toString(),
-        slug,
-        image,
-      });
+      const isOrgCreated = await db
+        .insert(organizations)
+        .values({
+          name,
+          id: v4().toString(),
+          slug,
+          image,
+        })
+        .returning();
 
-      if (!isCreated) {
+      if (!isOrgCreated.length) {
         return c.json(
           {
             message: "Failed to create organization",
+          },
+          500
+        );
+      }
+
+      const isJoinedToOrg = await db.insert(organizationMembers).values({
+        id: v4().toString(),
+        role: "admin",
+        userId: user.id,
+        organizationId: isOrgCreated[0].id,
+      });
+
+      if (!isJoinedToOrg) {
+        return c.json(
+          {
+            message: "Failed to join to organization",
           },
           500
         );

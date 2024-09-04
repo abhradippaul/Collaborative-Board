@@ -15,7 +15,7 @@ function OrganizationRequest() {
         <Button
           variant="ghost"
           size="lg"
-          className="font-normal justify-around px-2 w-full"
+          className="font-normal justify-between px-4 w-full"
         >
           <Handshake className="size-4 mr-2" />
           Request

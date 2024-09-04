@@ -1,7 +1,7 @@
 import { db } from "@/database";
 import { users } from "@/database/schema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { eq, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 
 const app = new Hono().post("/", async (c) => {
@@ -18,7 +18,7 @@ const app = new Hono().post("/", async (c) => {
   const isUserAlreadyExist = await db
     .select({ id: users.id })
     .from(users)
-    .where(or(eq(users.email, user.email), eq(users.id, user.id)));
+    .where(and(eq(users.email, user.email), eq(users.id, user.id)));
 
   if (isUserAlreadyExist.length) {
     return c.json({ message: "User already exists" });
