@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 export const users = pgTable("users", {
@@ -15,6 +15,7 @@ export const usersRelation = relations(users, ({ many }) => ({
   organizations: many(organizations),
   organizationMemberRequests: many(organizationMemberRequests),
   organizationMembers: many(organizationMembers),
+  organizationBoards: many(organizationBoards),
 }));
 
 export const insertUsersSchema = createInsertSchema(users);
@@ -30,6 +31,7 @@ export const organizations = pgTable("organizations", {
 export const organizationsRelation = relations(organizations, ({ many }) => ({
   organizationMembers: many(organizationMembers),
   organizationMemberRequests: many(organizationMemberRequests),
+  organizationBoards: many(organizationBoards),
 }));
 
 export const insertOrganizationsSchema = createInsertSchema(organizations);
@@ -102,3 +104,36 @@ export const organizationMemberRequestsRelation = relations(
 export const insertOrganizationMemberRequestsSchema = createInsertSchema(
   organizationMemberRequests
 );
+
+export const organizationBoards = pgTable("organization_board", {
+  id: text("id").primaryKey(),
+  organizationId: text("organizationId")
+    .notNull()
+    .references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
+  title: text("title").notNull(),
+  authorId: text("authorId")
+    .notNull()
+    .references(() => users.id, {
+      onDelete: "cascade",
+    }),
+  isFavorite: boolean("isFavorite").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const organizationBoardRelation = relations(
+  organizationBoards,
+  ({ one }) => ({
+    users: one(users, {
+      fields: [organizationBoards.authorId],
+      references: [users.id],
+    }),
+    organizations: one(organizations, {
+      fields: [organizationBoards.organizationId],
+      references: [organizations.id],
+    }),
+  })
+);
+
+export const insertOrganizationBoardsSchema = createInsertSchema(organizationBoards);

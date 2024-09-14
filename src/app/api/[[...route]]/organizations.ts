@@ -150,6 +150,97 @@ const app = new Hono()
         message: "Organization created successfully",
       });
     }
+  )
+  .patch(
+    "/",
+    zValidator(
+      "form",
+      insertOrganizationsSchema.omit({
+        id: true,
+        createdAt: true,
+      })
+    ),
+    async (c) => {
+      const { getUser } = getKindeServerSession();
+      const user = await getUser();
+      const { name, slug, image } = c.req.valid("form");
+
+      if (!user?.id || !user.email) {
+        return c.json(
+          {
+            message: "User is not authenticated",
+          },
+          401
+        );
+      }
+
+      if (!name || !slug) {
+        return c.json(
+          {
+            message: "Name and slug are required",
+          },
+          400
+        );
+      }
+
+      const isUserExist = await db
+        .select({
+          id: users.id,
+        })
+        .from(users)
+        .where(and(eq(users.email, user.email), eq(users.id, user.id)));
+
+      if (!isUserExist.length) {
+        return c.json(
+          {
+            message: "User does not exist",
+          },
+          404
+        );
+      }
+
+      const isOrgExist = await db
+        .select({
+          id: organizations.id,
+        })
+        .from(organizationMembers)
+        .innerJoin(
+          organizations,
+          eq(organizations.id, organizationMembers.organizationId)
+        )
+        .where(eq(organizations.slug, slug));
+
+      if (isOrgExist.length) {
+        return c.json(
+          {
+            message: "Organization does not exists",
+          },
+          404
+        );
+      }
+
+      const isOrgUpdated = await db
+        .update(organizations)
+        .set({
+          name,
+          image,
+        })
+        .where(eq(organizations.slug, slug))
+        .returning();
+
+      if (!isOrgUpdated.length) {
+        return c.json(
+          {
+            message: "Failed to update organization",
+          },
+          500
+        );
+      }
+
+      return c.json({
+        message: "Organization updated successfully",
+      });
+    }
   );
 
 export default app;
